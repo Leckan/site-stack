@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: sitestack-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sitestack
+      POSTGRES_PASSWORD: sitestack_dev_password
+      POSTGRES_DB: sitestack
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sitestack -d sitestack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: sitestack-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcp-server:
+    build:
+      context: ./services/mcp-server
+      dockerfile: Dockerfile
+    container_name: sitestack-mcp-server
+    restart: unless-stopped
+    environment:
+      PORT: "8001"
+      SDAT_ARCGIS_ENDPOINT: https://geodata.md.gov/imap/rest/services/PlanningCadastre/MD_PropertyData/MapServer/0/query
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      HUD_API_TOKEN: ${HUD_API_TOKEN:-}
+    ports:
+      - "8001:8001"
+
+  adk-orchestrator:
+    build:
+      context: ./services/adk-orchestrator
+      dockerfile: Dockerfile
+    container_name: sitestack-adk-orchestrator
+    restart: unless-stopped
+    environment:
+      PORT: "8002"
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-sitestack-md-enterprise}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-us-east4}
+      ADK_MODEL_NAME: ${ADK_MODEL_NAME:-gemini-1.5-pro}
+      MCP_SERVER_SSE_URL: http://mcp-server:8001/sse
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://sitestack:sitestack_dev_password@postgres:5432/sitestack
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mcp-server:
+        condition: service_started
+
+volumes:
+  postgis_data:
+  redis_data:
+

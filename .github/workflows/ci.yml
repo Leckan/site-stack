@@ -1,0 +1,49 @@
+name: SiteStack Enterprise CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  typescript-monorepo:
+    name: TypeScript Packages & Next.js Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Typecheck & Lint
+        run: pnpm typecheck && pnpm lint
+      - name: Run Unit Tests
+        run: pnpm test
+      - name: Build Monorepo
+        run: pnpm build
+
+  python-services:
+    name: FastMCP Server & Google ADK Orchestrator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+      - name: Test FastMCP Server
+        working-directory: services/mcp-server
+        run: |
+          uv sync --all-extras
+          uv run pytest -v
+      - name: Test ADK Orchestrator
+        working-directory: services/adk-orchestrator
+        run: |
+          uv sync --all-extras
+          uv run pytest -v
+
