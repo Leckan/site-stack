@@ -1,0 +1,19 @@
+{
+  "name": "sitestack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SiteStack — Enterprise Multi-Sided Housing Development, Land Entitlement, and Capital-Matching Platform for Maryland",
+  "scripts": {
+    "dev": "pnpm --filter @sitestack/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @sitestack/database db:generate",
+    "db:migrate": "pnpm --filter @sitestack/database db:migrate",
+    "db:seed": "pnpm --filter @sitestack/database db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
